@@ -1,0 +1,418 @@
+[index.html](https://github.com/user-attachments/files/23282126/index.html)
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>Caisse Enregistreuse vo </title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f5f5f5;
+        margin: 5px;
+        padding: 1px;
+        display: flex;
+        height: 100vh;
+    }
+
+    .caisse {
+        width: 25%;
+        background: white;
+        padding: 5px;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .caisse h2 { text-align: center; margin-top: 0; }
+
+    #total {
+        font-weight: bold;
+        font-size: 1.3em;
+        text-align: right;
+        color: #007bff;
+        margin-bottom: 10px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 10px;
+    }
+
+    th, td {
+        border: 1px solid #ddd;
+        padding: 1px;
+        text-align: center;
+        font-size: 0.9em;
+    }
+
+    th:nth-child(1) { width: 45%; }  
+    th:nth-child(2) { width: 20%; }  
+    th:nth-child(3) { width: 25%; }  
+    th:nth-child(4) { width: 10%; }  
+
+    td input[type="number"] {
+        width: 44px;
+        text-align: center;
+        padding: 3px;
+        font-size: 0.9em;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .montant-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 8px;
+    }
+
+    .montant-row label {flex: 1; font-weight: bold; }
+    .montant-row input { flex: 1; text-align: right; padding: 5px;  }
+
+    button {
+        border: none;
+        padding: 6px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    .btn-add { background-color: #28a745; color: white; }
+    .btn-del { background-color: #dc3545; color: white; }
+    .btn-edit { background-color: #ffc107; color: black; }
+    .btn-ticket { background-color: #17a2b8; color: white; margin-top: 10px; }
+
+    #rendu {
+        text-align: right;
+        font-weight: bold;
+        color: #28a745;
+        margin-top: 5px;
+    }
+
+    .articles { width: 90%; padding: 0px; overflow-y: auto; margin-bottom: 0px; margin-top: 0px;
+    }
+
+    .categories {
+        margin-bottom: 10px;
+        text-align: center;
+    }
+
+    .categories button {
+        margin: 5px;
+        padding: 8px 15px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+    }
+
+    .article-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 10px; margin-bottom: 0px; margin-top: 0px;
+    }
+
+    .article {background: white;border-radius: 5px;box-shadow: 0 2px 2px rgba(0,0,0,0.1);
+        text-align: center; padding: 0px; margin-bottom: 0px; margin-top: 0px;
+    }
+
+    .article img {
+        width: 100%;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 5px;
+    }
+
+    .stock { color: #28a745; font-size: 0.8em; font-weight: bold;margin-bottom: 0px; margin-top: 0px;}
+
+    .btn-group {
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+        margin-top: 1px;
+    }
+
+    .scanner {text-align: center;margin-bottom: 0px;margin-bottom: 0px; margin-top: 0px;
+    }
+
+    .scanner input {
+        width: 80%;
+        font-size: 1em;
+        padding: 8px;
+    }
+</style>
+</head>
+<body>
+
+<div class="caisse">
+    <h2>🧾 السلة</h2>
+    <div id="total">المجموع: 0.00 د.م</div>
+
+    <table id="panier">
+        <thead>
+            <tr>
+                <th>الصنف</th>
+                <th>الكمية</th>
+                <th>السعر</th>
+                <th>حذف</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <div class="montant-row">
+        <label>المبلغ المدفوع (د.م)</label>
+        <input type="number" id="montantPaye" placeholder="0" oninput="calculerRendu()">
+    </div>
+
+    <div id="rendu"></div>
+    <button class="btn-ticket" onclick="imprimerTicket()"style="margin-bottom:10px;">🖨️ طباعة الفاتورة</button>
+<button class="btn-add" onclick="validerVente()">✅ Valider la vente</button>
+</div>
+
+<div class="articles">
+    <h2 style="text-align: center; font-size: 20px; color: blue;">🛒 كتالوج المنتجات</h2>
+
+
+    <div class="scanner">
+        <input type="text" id="scanInput" placeholder="مسح الباركود أو إدخال الكود" onkeypress="verifierCodeBarre(event)">
+    </div>
+
+    <div class="categories">
+        <button onclick="filtrerCategorie('tous')">الكل</button>
+        <button onclick="filtrerCategorie('livers')">كتب</button>
+        <button onclick="filtrerCategorie('cahiers')">دفاتر</button>
+        <button onclick="filtrerCategorie('fournitures')">مستلزمات مكتبية</button>
+        <button onclick="filtrerCategorie('papiers')">ورق</button>
+        <button onclick="filtrerCategorie('services')">خدمات</button>
+        <button onclick="filtrerCategorie('accessoires')">إكسسوارات</button>
+        <button onclick="filtrerCategorie('divers')">متفرقات</button>
+        <button class="btn-add" onclick="ajouterArticleVide()">+ إضافة منتج</button>
+    </div>
+
+    <div id="articleContainer" class="article-grid"></div>
+</div>
+
+<script>
+let articles = JSON.parse(localStorage.getItem('catalogue')) || [
+    { id: 1, code: '1001', categorie: 'livres', nom: 'Roman Classique', prix: 120, stock: 5, image: 'https://via.placeholder.com/150x100?text=Livre' },
+    { id: 2, code: '1002', categorie: 'cahiers', nom: 'Cahier A4', prix: 25, stock: 10, image: 'https://via.placeholder.com/150x100?text=Cahier' },
+    { id: 3, code: '1003', categorie: 'fournitures', nom: 'Stylo Bleu', prix: 5, stock: 50, image: 'https://via.placeholder.com/150x100?text=Stylo' }
+];
+
+let panier = JSON.parse(localStorage.getItem('panier')) || [];
+let categorieActive = 'tous';
+
+function sauvegarder() {
+    localStorage.setItem('catalogue', JSON.stringify(articles));
+    localStorage.setItem('panier', JSON.stringify(panier));
+}
+
+
+function afficherPanier() {
+    const tbody = document.querySelector('#panier tbody');
+    tbody.innerHTML = '';
+    let total = 0;
+
+    panier.forEach((item, i) => {
+        const sousTotal = item.prix * item.quantite;
+        total += sousTotal;
+        tbody.innerHTML += `
+            <tr>
+                <td>${item.nom}</td>
+                <td><input type="number" min="1" value="${item.quantite}" onchange="modifierQuantite(${i}, this.value)"></td>
+                <td>${sousTotal.toFixed(2)} DH</td>
+                <td><button class="btn-del" onclick="supprimerArticle(${i})">🗑️</button></td>
+            </tr>`;
+    });
+
+    document.getElementById('total').textContent = 'Total : ' + total.toFixed(2) + ' DH';
+    calculerRendu();
+}
+
+function modifierQuantite(index, nouvelleQuantite) {
+    nouvelleQuantite = parseInt(nouvelleQuantite);
+    if (nouvelleQuantite <= 0) return;
+    panier[index].quantite = nouvelleQuantite;
+    sauvegarder();
+    afficherPanier();
+}
+
+function ajouterAuPanierCode(code) {
+    const art = articles.find(a => a.code === code);
+    if (!art) return alert("Code-barres inconnu !");
+    ajouterAuPanier(art.id);
+}
+
+function verifierCodeBarre(e) {
+    if (e.key === 'Enter') {
+        const code = e.target.value.trim();
+        if (code) ajouterAuPanierCode(code);
+        e.target.value = '';
+    }
+}
+
+function ajouterAuPanier(id) {
+    const art = articles.find(a => a.id === id);
+    if (!art || art.stock <= 0) return alert("Stock insuffisant !");
+    const exist = panier.find(p => p.id === id);
+    if (exist) exist.quantite++;
+    else panier.push({ id: art.id, nom: art.nom, prix: art.prix, quantite: 1 });
+    art.stock--;
+    sauvegarder();
+    afficherPanier();
+    afficherArticles();
+}
+
+function supprimerArticle(i) {
+    const item = panier[i];
+    const art = articles.find(a => a.id === item.id);
+    art.stock += item.quantite;
+    panier.splice(i, 1);
+    sauvegarder();
+    afficherPanier();
+    afficherArticles();
+}
+
+function afficherArticles(cat = categorieActive) {
+    categorieActive = cat;
+    const container = document.getElementById('articleContainer');
+    container.innerHTML = '';
+
+    articles.sort((a, b) => a.categorie.localeCompare(b.categorie) || a.nom.localeCompare(b.nom));
+
+    const filtres = cat === 'tous' ? articles : articles.filter(a => a.categorie === cat);
+
+    filtres.forEach(a => {
+        container.innerHTML += `
+            <div class="article">
+                <img src="${a.image}" alt="${a.nom}">
+                <h4 style="margin-bottom: 0px;margin-top: 0px;">${a.nom}</h4>
+             <p style="margin-bottom: 0px;margin-top: 0px;">Prix : ${a.prix.toFixed(2)} DH</p>
+                <p class="stock">Stock : ${a.stock}</p>
+        <p style="margin-bottom: 0px;margin-top: 0px;">Code : ${a.code}</p>
+
+               <p style="margin-bottom: 0px;margin-top: 0px;">Catégorie : ${a.categorie}</p>
+                <div class="btn-group">
+                    <button class="btn-add" onclick="ajouterAuPanier(${a.id})">+</button>
+                    <button class="btn-edit" onclick="modifierArticle(${a.id})">✎</button>
+                    <button class="btn-del" onclick="supprimerArticleCatalogue(${a.id})">🗑️</button>
+                </div>
+            </div>`;
+    });
+}
+
+function ajouterArticleVide() {
+    const id = Date.now();
+    const code = prompt("Code-barres :", id.toString().slice(-6));
+    const nom = prompt("Nom de l'article :");
+    const prix = parseFloat(prompt("Prix (DH) :", 0));
+    const stock = parseInt(prompt("Stock :", 1));
+    const categorie = prompt("Catégorie :", "livres");
+    const image = prompt("URL de l'image :", "https://via.placeholder.com/150x100?text=Article");
+
+    if (!nom) return;
+    articles.push({ id, code, categorie, nom, prix, stock, image });
+    sauvegarder();
+    afficherArticles();
+}
+
+function modifierArticle(id) {
+    const a = articles.find(a => a.id === id);
+    if (!a) return;
+    const code = prompt("Code-barres :", a.code);
+    const nom = prompt("Nom :", a.nom);
+    const prix = parseFloat(prompt("Prix (DH) :", a.prix));
+    const stock = parseInt(prompt("Stock :", a.stock));
+    const categorie = prompt("Catégorie :", a.categorie);
+    const image = prompt("Image URL :", a.image);
+
+    if (nom && code) {
+        Object.assign(a, { code, nom, prix, stock, categorie, image });
+        sauvegarder();
+        afficherArticles();
+    }
+}
+
+function supprimerArticleCatalogue(id) {
+    if (confirm("Supprimer cet article ?")) {
+        articles = articles.filter(a => a.id !== id);
+        sauvegarder();
+        afficherArticles();
+    }
+}
+
+function filtrerCategorie(cat) {
+    afficherArticles(cat);
+}
+
+function calculerRendu() {
+    const total = panier.reduce((acc, item) => acc + item.prix * item.quantite, 0);
+    const montant = parseFloat(document.getElementById('montantPaye').value) || 0;
+    const rendu = montant - total;
+    document.getElementById('rendu').textContent =
+        rendu >= 0 ? " الباقي 💰: " + rendu.toFixed(2) + "   (د.م) ": " المبلغ الناقص   : " + Math.abs(rendu).toFixed(2) + " (د.م)";
+}
+
+function imprimerTicket() {
+    if (panier.length === 0) return alert("Panier vide !");
+    const total = panier.reduce((a,b)=>a+b.prix*b.quantite,0);
+    const paye = parseFloat(document.getElementById('montantPaye').value)||0;
+    const rendu = paye-total;
+
+    let contenu = `
+        <div style="font-family: monospace;text-align:center;">
+            <h2>🧾 Ticket de Caisse</h2>
+            <table style="width:100%;text-align:left;">
+                <tr><th>Article</th><th>Qté</th><th>Prix</th></tr>`;
+    panier.forEach(i=>{contenu+=`<tr><td>${i.nom}</td><td>${i.quantite}</td><td>${(i.prix*i.quantite).toFixed(2)} DH</td></tr>`});
+    contenu+=`</table><p><strong>Total :</strong> ${total.toFixed(2)} DH</p>
+    <p><strong>Payé :</strong> ${paye.toFixed(2)} DH</p>
+    <p><strong>Rendu :</strong> ${rendu.toFixed(2)} DH</p>
+    <p>Merci pour votre achat !</p></div>`;
+    const w=window.open("","Ticket","width=400,height=600");
+    w.document.write(contenu);
+    w.document.close();
+    w.print();
+}
+function validerVente() {
+    if (panier.length === 0) return alert("Le panier est vide !");
+
+    // Obtenir date et heure
+    const now = new Date();
+    const dateHeure = now.toLocaleString(); // Exemple : 27/10/2025 15:30
+
+    // Préparer les données de vente
+    const vente = {
+        date: dateHeure,
+        panier: panier,
+        total: panier.reduce((acc, item) => acc + item.prix * item.quantite, 0)
+    };
+
+    // Convertir en JSON
+    const venteJSON = JSON.stringify(vente, null, 2);
+
+    // Créer un fichier téléchargeable
+    const blob = new Blob([venteJSON], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    // Créer un lien temporaire pour téléchargement
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `vente_${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}_${now.getHours()}-${now.getMinutes()}-${now.getSeconds()}.json`;
+    a.click();
+
+    URL.revokeObjectURL(url);
+
+    // Vider le panier et mettre à jour l'affichage
+    panier = [];
+    sauvegarder();
+    afficherPanier();
+    alert("Vente validée et enregistrée !");
+}
+
+afficherPanier();
+afficherArticles();
+</script>
+</body>
+</html>
